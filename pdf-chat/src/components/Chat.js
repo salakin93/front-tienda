@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm'; // Importa remark-gfm
 import './Chat.css';
 
 const Chat = ({ apiUrl, apiKey }) => {
@@ -13,9 +15,9 @@ const Chat = ({ apiUrl, apiKey }) => {
         setMessages([...messages, userMessage]);
 
         try {
-            const response = await axios.post(apiUrl, {
+            const response = await axios.get(apiUrl + userInput, {
                 question: userInput,
-                sessionId: 'chat-session-id',
+                sessionsId: 'chat-session-id',
             }, {
                 headers: { 'x-api-key': apiKey }
             });
@@ -35,7 +37,7 @@ const Chat = ({ apiUrl, apiKey }) => {
             <div className="chat-messages">
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`chat-message ${msg.role}`}>
-                        {msg.content}
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                     </div>
                 ))}
             </div>
