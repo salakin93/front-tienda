@@ -1,57 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm'; // Importa remark-gfm
-import './Chat.css';
+import remarkGfm from 'remark-gfm';
 
-const Chat = ({ apiUrl, apiKey }) => {
-    const [messages, setMessages] = useState([]);
-    const [userInput, setUserInput] = useState('');
+const Chat = ({ sessionId }) => {
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const messagesEndRef = useRef(null);
 
-    const handleSend = async () => {
-        if (userInput.trim() === '') return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-        const userMessage = { role: 'user', content: userInput };
-        setMessages([...messages, userMessage]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-        try {
-            const response = await axios.get(apiUrl + userInput, {
-                question: userInput,
-                sessionsId: 'chat-session-id',
-            }, {
-                headers: { 'x-api-key': apiKey }
-            });
+  const handleSend = async () => {
+    if (userInput.trim() === '') return;
 
-            const botMessage = { role: 'bot', content: response.data };
-            setMessages((prev) => [...prev, botMessage]);
-        } catch (error) {
-            const errorMessage = { role: 'bot', content: 'Error fetching response' };
-            setMessages((prev) => [...prev, errorMessage]);
-        }
+    const userMessage = { role: 'user', content: userInput };
+    setMessages([...messages, userMessage]);
+    setIsLoading(true);
 
-        setUserInput('');
-    };
+    try {
+      const response = await axios.get(
+        `http://localhost:8082/api/pdf/query?sessionId=${sessionId}&question=${encodeURIComponent(
+          userInput
+        )}`
+      );
 
-    return (
-        <div className="chat-container">
-            <div className="chat-messages">
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`chat-message ${msg.role}`}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                    </div>
-                ))}
-            </div>
-            <div className="chat-input">
-                <input
-                    type="text"
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    placeholder="Type your message..."
-                />
-                <button onClick={handleSend}>Send</button>
-            </div>
-        </div>
-    );
+      const botMessage = { role: 'bot', content: response.data.content };
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      const errorMessage = { role: 'bot', content: 'Error al obtener respuesta' };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+
+    setIsLoading(false);
+    setUserInput('');
+  };
+
+  return (
+    <div className="flex flex-col flex-grow w-full max-w-xl bg-white shadow-xl rounded-lg overflow-hidden">
+      <div className="flex flex-col flex-grow h-0 p-5 overflow-auto">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`p-3 max-w-[80%] rounded-lg ${msg.role === 'user'
+                ? 'bg-blue-600 text-white p-3 rounded-l-lg rounded-br-lg'
+                : 'bg-gray-300 p-3 rounded-r-lg rounded-bl-lg'
+              }`}
+            style={{ wordWrap: 'break-word', marginBottom: '10px' }}
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+          </div>
+        ))}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="flex items-center space-x-2 px-4 py-2">
+        <input
+          type="text"
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSend();
+            }
+          }}
+          placeholder="Escribe tu consulta..."
+          className="flex-grow p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={handleSend}
+          className="bg-blue-500 text-white p-3 rounded-full hover:bg-blue-600 transition duration-200"
+        >
+          {isLoading ? 'Enviando...' : 'Enviar'}
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default Chat;

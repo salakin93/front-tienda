@@ -1,23 +1,40 @@
-import React from 'react';
-import PdfViewer from './components/PdfViewer';
+import React, { useState } from 'react';
+import FileUpload from './components/FileUpload';
 import Chat from './components/Chat';
-import './App.css';
+import PdfViewer from './components/PdfViewer';
+import './styles/tailwind.css';
 
-function App() {
-    const pdfUrl = '/PDFs/inspiron-16-plus-7630-4050-3050-om-es-xl.pdf'; // Cambia esto a la URL de tu PDF
-    const chatApiUrl = 'http://localhost:8082/api/pdf/query?sessionId=src_cJfyB5xvDBbsN4CnJDt4o&question='; // Cambia esto a tu endpoint
-    const chatApiKey = 'your-api-key';
+const App = () => {
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
 
-    return (
-        <div className="app">
-            <div className="column pdf-viewer">
-                <PdfViewer initialPdfUrl={pdfUrl} />
-            </div>
-            <div className="column chat">
-                <Chat apiUrl={chatApiUrl} apiKey={chatApiKey} />
-            </div>
-        </div>
-    );
-}
+  const handlePdfUploaded = (url, id) => {
+    setPdfUrl(url);
+    setSessionId(id);
+  };
+
+  return (
+    <div id="webcrumbs" className="w-full h-screen bg-white rounded-lg shadow-lg flex flex-col lg:flex-row overflow-hidden">
+
+      <div className="w-full lg:w-1/2 bg-neutral-100 flex flex-col items-center justify-start p-8 gap-4">
+        {!pdfUrl ? (
+          <FileUpload onPdfUploaded={handlePdfUploaded} />
+        ) : (
+          <PdfViewer initialPdfUrl={pdfUrl} />
+        )}
+
+      </div>
+
+      <div className="w-full lg:w-1/2 bg-white flex flex-col items-center justify-center p-5">
+        {pdfUrl && sessionId ? (
+          <Chat sessionId={sessionId} />
+        ) : (
+          <div className="text-gray-500">Sube un documento PDF para comenzar</div>
+        )}
+      </div>
+
+    </div>
+  );
+};
 
 export default App;
